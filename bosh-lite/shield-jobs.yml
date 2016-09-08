@@ -1,0 +1,135 @@
+meta:
+  stemcell: (( param "please set meta.stemcell" ))
+
+  shield:
+    log_level: debug
+    skip_ssl_verify: true
+    ssl:
+      key: ~
+      crt: ~
+    daemon:
+      domain: shield.service.consul
+      ssh_private_key: (( param "please set meta.shield.daemon.ssh_private" ))
+      database:
+        type: mysql
+        host: (( param "please set meta.shield.daemon.database.host" ))
+        port: (( param "please set meta.shield.daemon.database.port" ))
+        username: shieldadmin
+        password: (( param "please set meta.shield.daemon.database.password" ))
+        db: shielddb
+      auth:
+        api_keys:
+          autoprovision: (( param "please set meta.shield.daemon.auth.api_keys.autoprovision" ))
+        basic_user: admin
+        basic_password: (( param "please set meta.shield.daemon.auth.basic_password" ))
+    targets: []
+    jobs:  []
+    schedules: []
+    retentions: []
+    stores: []
+
+  nginx:
+    port: 8082
+    backend_url: http://127.0.0.1:8500
+
+  db:
+    port: 3306
+    databases:
+    - name: shielddb
+    roles:
+    - name: dbuser
+      password: dbpass
+
+  instances:
+    database: 1
+    shield: 1
+
+stemcells:
+- alias: (( grab meta.stemcell.name ))
+  name: (( grab meta.stemcell.name ))
+  version: (( grab meta.stemcell.version ))
+
+instance_groups:
+- name: database
+  jobs:
+  - name: mariadb
+    release: shield
+    provides:
+        incoming: {as: db-conn}
+    properties:
+      db:
+        port: (( grab meta.db.port ))
+        databases: (( grab meta.db.databases ))
+        roles: (( grab meta.db.roles ))
+  instances: (( grab meta.instances.database ))
+  vm_type: (( grab meta.vm_types.db.name ))
+  stemcell: (( grab stemcells.[0].alias ))
+  persistent_disk: 2048
+  azs: [z1]
+  migrated_from:
+  - name: database
+    az: z1
+  networks:
+  - name: (( grab meta.networks.dbnet.name ))
+    default: [dns, gateway]
+- name: shield
+  instances: (( grab meta.instances.shield ))
+  vm_type: (( grab meta.vm_types.shield.name ))
+  stemcell: (( grab stemcells.[0].alias ))
+  azs: [z1]
+  migrated_from:
+  - name: shield_z1
+    az: z1
+  networks:
+  - name: (( grab meta.networks.shieldnet.name ))
+    default: [dns, gateway]
+  jobs:
+  - release: shield
+    name: nginx
+    properties:
+      shield:
+        daemon:
+          domain: (( grab meta.shield.daemon.domain ))
+      nginx:
+        ssl_key: (( grab meta.shield.ssl.key ))
+        ssl_crt: (( grab meta.shield.ssl.crt ))
+  - release: shield
+    name: shield-daemon
+    properties:
+      shield:
+        provisioning_key: (( grab meta.shield.daemon.auth.api_keys.autoprovision ))
+        skip_ssl_verify: (( grab meta.shield.skip_ssl_verify ))
+        log_level: (( grab meta.shield.log_level ))
+        schedules: (( grab meta.shield.schedules ))
+        retentions: (( grab meta.shield.retentions ))
+        stores: (( grab meta.shield.stores ))
+        daemon:
+          domain: (( grab meta.shield.daemon.domain ))
+          ssh_private_key: (( grab meta.shield.daemon.ssh_private_key ))
+          database:
+            type: (( grab meta.shield.daemon.database.type ))
+            host: (( grab meta.shield.daemon.database.host ))
+            port: (( grab meta.shield.daemon.database.port ))
+            username: (( grab meta.shield.daemon.database.username ))
+            password: (( grab meta.shield.daemon.database.password ))
+            db: (( grab meta.shield.daemon.database.db ))
+          auth:
+            api_keys: (( grab meta.shield.daemon.auth.api_keys ))
+            basic_user: (( grab meta.shield.daemon.auth.basic_user ))
+            basic_password: (( grab meta.shield.daemon.auth.basic_password ))
+  - release: shield
+    name: agent-mysql
+  - release: shield
+    name: shield-agent
+    properties:
+      shield:
+        provisioning_key: (( grab meta.shield.daemon.auth.api_keys.autoprovision ))
+        agent:
+          autoprovision: (( concat "http://" meta.shield.daemon.domain ))
+          plugin_paths:
+            custom: /var/vcap/packages/custom/bin
+        log_level: (( grab meta.shield.log_level ))
+        daemon:
+          domain: (( grab meta.shield.daemon.domain ))
+        targets: (( grab meta.shield.targets ))
+        jobs: (( grab meta.shield.jobs ))

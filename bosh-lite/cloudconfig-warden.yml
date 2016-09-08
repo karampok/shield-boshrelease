@@ -1,0 +1,53 @@
+azs:
+  - name: z1
+    cloud_properties: {}
+
+compilation:
+  network: default
+  reuse_compilation_vms: true
+  workers: 1
+  vm_type: forcompilation
+  az: z1
+
+networks:
+- name: default
+  type: manual
+  subnets:
+  - range: 10.244.5.0/24
+    az: z1
+    gateway: 10.244.5.1
+    static:
+    - 10.244.5.20 - 10.244.5.25
+- name: shielddbnet
+  type: manual
+  subnets:
+  - range: 10.244.20.0/24
+    az: z1
+    gateway: 10.244.20.1
+    reserved:
+    - 10.244.20.2 - 10.244.20.9
+    - 10.244.20.11 - 10.244.20.255
+    static: []
+- name: shieldnet
+  type: manual
+  subnets:
+  - range: 10.244.20.0/24
+    az: z1
+    gateway: 10.244.20.1
+    reserved:
+    - 10.244.20.2 - 10.244.20.19
+    - 10.244.20.25 - 10.244.20.255
+    static: []
+
+disk_types: []
+
+vm_types:
+- name: forcompilation
+  cloud_properties:
+    name: random
+- name: fordatabase
+  cloud_properties:
+    name: random
+- name: forshield
+  cloud_properties:
+    name: random

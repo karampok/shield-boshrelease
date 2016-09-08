@@ -1,0 +1,68 @@
+#!/bin/bash -e
+
+set -e # exit immediately if a simple command exits with a non-zero status
+set -u # report the usage of uninitialized variables
+set -x
+
+source /var/vcap/jobs/mariadb/helpers/ctl_setup.sh 'mariadb'
+
+PORT=<%= p('db.port') %>
+PACKAGE_DIR=/var/vcap/packages/mariadb
+SERVER=$PACKAGE_DIR/support-files/mysql.server
+
+case "$1" in
+  start)
+    pid_guard $PIDFILE "MariaDB"
+
+    echo $$ > $PIDFILE
+    chown vcap:vcap $PIDFILE
+
+
+    if [ ! "$( ls -A $STORE_DIR)" ]; then
+      cp $JOB_DIR/config/my.cnf ~vcap/.my.cnf
+      su - vcap -c "$PACKAGE_DIR/scripts/mysql_install_db --user vcap --datadir=$STORE_DIR --basedir=$PACKAGE_DIR"
+    fi
+
+    echo "Starting MariaDB: "
+    su - vcap -c "$SERVER start --datadir=$STORE_DIR --basedir=$PACKAGE_DIR --pid-file=$PIDFILE"
+
+    su - vcap -c "echo \"DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');\" | $PACKAGE_DIR/bin/mysql --port $PORT -u root"
+
+    echo "Creating roles..."
+    <% p("db.roles", []).each do |role| %>
+      echo "Trying to create role <%= role["name"] %>..."
+      set +e
+      su - vcap -c "echo \"GRANT ALL PRIVILEGES ON *.* TO '<%= role["name"] %>'@'%' IDENTIFIED BY '<%= role["password"] %>'; FLUSH PRIVILEGES;\" | $PACKAGE_DIR/bin/mysql --port $PORT -u root"
+      set -e
+    <% end %>
+
+    echo "Creating databases..."
+    <% p("db.databases", []).each do |database| %>
+      echo "Trying to create database <%= database["name"] %>..."
+      set +e
+      su - vcap -c "$PACKAGE_DIR/bin/mysqladmin --port $PORT -u root create <%= database["name"] %>"
+      set -e
+    <% end %>
+
+    echo "MariaDB started successfully"
+    ;;
+
+  stop)
+    echo "Stopping MariaDB: "
+    su - vcap -c "$SERVER stop --pid-file=$PIDFILE"
+    wait_pidfile $PIDFILE
+
+    ;;
+
+  status)
+    su - vcap -c "$SERVER status"
+
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop|status}"
+    exit 1
+
+    ;;
+
+esac

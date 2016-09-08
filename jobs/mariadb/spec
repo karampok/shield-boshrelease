@@ -2,19 +2,24 @@
 name: mariadb
 
 templates:
-  mariadb_ctl.erb: bin/mariadb_ctl
-  mariadb_start.sh.erb: bin/mariadb_start.sh
-  my.cnf.erb: config/my.cnf
+  bin/monit_debugger: bin/monit_debugger
+  bin/mariadb_ctl.erb: bin/mariadb_ctl
+  config/my.cnf.erb: config/my.cnf
+  helpers/ctl_setup.sh: helpers/ctl_setup.sh
+  helpers/ctl_utils.sh: helpers/ctl_utils.sh
+
+provides:
+- name: incoming
+  type: db
 
 packages:
-  - common
   - mariadb
 
 properties:
-  databases.port:
+  db.port:
     description: "The database port"
     default: 3306
-  databases.databases:
-    description: "A list of databases and associated properties to create"
-  databases.roles:
+  db.databases:
+    description: "A list of databases to create"
+  db.roles:
     description: "A list of database roles"

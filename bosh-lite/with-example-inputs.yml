@@ -1,0 +1,38 @@
+meta:
+  shield:
+    agent:
+      autoprovision: https://localhost
+    provisioning_key: ahardprovisioningkey
+    targets:
+      shielddb:
+        plugin: mysql
+        config:
+          mysql_user: dbuser
+          mysql_password: dbpass
+          mysql_host: 10.244.20.10
+          mysql_port: '3306'
+          mysql_database: shielddb
+    jobs:
+      Daily2amazon:
+        target: shielddb
+        store: amazon
+        retention: week
+        schedule: daily
+    schedules:
+      daily: daily 2am
+    retentions:
+      week: 31536000
+    stores:
+      amazon:
+        plugin: s3
+        config:
+          s3_host: xyq.com
+          access_key_id: accesskeyid
+          secret_access_key: secretaccesskey
+          bucket: bucketname
+          skip_ssl_validation: true
+          signature_version: "2"
+    daemon:
+      auth:
+        api_keys:
+          autoprovision: ahardprovisioningkey
