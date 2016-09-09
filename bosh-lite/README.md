@@ -3,14 +3,17 @@
 ## Tutorial
 
 * Bring up a [bosh-lite director](https://github.com/cloudfoundry/bosh-lite) and upload a stemcell if not exist
-* Update the cloud-config in Bosh-lite
+* Update the cloud-config in bosh-lite
+
   ```
   bosh update cloud-config bosh-lite/cloudconfig-warden.yml
   ```
+
   or merge on an existing one
+
   ```
   bosh cloud-config > /tmp/current-cc
-  spruce merge /tmp/current $1 > /tmp/new-cc
+  spruce merge /tmp/current bosh-lite/cloudconfig-warden.yml  > /tmp/new-cc
   bosh update cloud-config /tmp/new-cc
   rm /tmp/new-cc /tmp/current-cc
   ```
@@ -27,8 +30,8 @@
   ```
 
 * Deploy
-```
-  bosh -n deploy
-```
+  ```
+    bosh -n deploy
+  ```
 
 * Visit https://10.244.20.20
