@@ -16,12 +16,12 @@ meta:
       Daily2amazon:
         target: shielddb
         store: amazon
-        retention: week
+        retention: day
         schedule: daily
     schedules:
       daily: daily 2am
     retentions:
-      week: 31536000
+      day: 86400
     stores:
       amazon:
         plugin: s3

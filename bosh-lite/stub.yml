@@ -5,8 +5,6 @@ director_uuid: <%= `bosh target lite > /dev/null 2>&1 && bosh status --uuid` %>
 releases:
   - name: shield
     version: latest
-  - name: servicemanager
-    version: latest
 
 meta:
   stemcell:
